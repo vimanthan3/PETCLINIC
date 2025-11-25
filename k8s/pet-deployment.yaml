@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pet
+  template:
+    metadata:
+      labels:
+        app: pet
+    spec:
+      containers:
+        - name: pet
+          image: pet:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
