@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pet
-          image: DOCKER_USERNAME/pet:latest   # placeholder, CI will replace this
+          image: vimanthan/pet:latest
           ports:
             - containerPort: 8080
 ---
