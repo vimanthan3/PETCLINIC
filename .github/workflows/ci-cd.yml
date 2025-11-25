@@ -9,45 +9,53 @@ on:
 
 jobs:
   build-test-deploy:
-    runs-on: self-hosted  # use your self-hosted runner
+    runs-on: self-hosted   # your WSL/Minikube runner
 
     env:
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/demo-app:latest
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/pet:latest
 
     steps:
+      # -------- Checkout code --------
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # -------- Java / Gradle build --------
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build jar
-        run: ./gradlew build 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
+      - name: Build jar
+        run: ./gradlew clean build
+
+      # -------- Docker build & push --------
       - name: Log in to Docker Hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Build Docker image
         run: |
-          docker build -t $IMAGE_NAME .
+          docker build -t "$IMAGE_NAME" .
 
       - name: Push Docker image
         run: |
-          docker push $IMAGE_NAME
+          docker push "$IMAGE_NAME"
 
+      # -------- Kubernetes deploy (Minikube) --------
       - name: Set up kubeconfig
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_CONTENT }}" > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          mkdir -p "$HOME/.kube"
+          printf '%s\n' "${{ secrets.KUBECONFIG_CONTENT }}" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
 
       - name: Check cluster
         run: kubectl get nodes
 
+      # Replace placeholder image in k8s manifest with built image
       - name: Update image in manifest
         run: |
           sed -i 's#DOCKER_USERNAME/demo-app:latest#'"${IMAGE_NAME}"'#' k8s/deployment.yaml
